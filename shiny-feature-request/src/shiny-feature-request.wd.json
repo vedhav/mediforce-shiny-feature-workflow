@@ -44,7 +44,7 @@
         "image": "mediforce-shiny-feature-request:latest",
         "dockerfile": "shiny-feature-request/Dockerfile",
         "repo": "https://github.com/vedhav/mediforce-shiny-feature-workflow.git",
-        "commit": "0000000000000000000000000000000000000000",
+        "commit": "abc2b2a7ab0010e050d5babe5f799e8d0dbe9269",
         "command": "Rscript /opt/shiny-feature-request/scripts/setup_app.R",
         "timeoutMinutes": 20
       }
@@ -70,7 +70,7 @@
         "image": "mediforce-shiny-feature-request:latest",
         "dockerfile": "shiny-feature-request/Dockerfile",
         "repo": "https://github.com/vedhav/mediforce-shiny-feature-workflow.git",
-        "commit": "0000000000000000000000000000000000000000",
+        "commit": "abc2b2a7ab0010e050d5babe5f799e8d0dbe9269",
         "timeoutMinutes": 30,
         "allowedTools": ["WebSearch", "WebFetch"],
         "prompt": "You are implementing a feature request in an R Shiny application.\n\nRead /output/input.json. The feature request is at triggerPayload.featureRequest, the base branch at triggerPayload.baseBranch, and the clone metadata at steps[\"setup-app\"].\n\nThe application is already cloned at /workspace/app with its dependencies restored. Work only inside /workspace/app.\n\n1. Read enough of the app to place the change correctly, and follow the conventions already in the codebase.\n2. Implement exactly the requested feature. Do not add unrelated refactors, comments, or dependencies.\n3. If the app has tests, keep them green and extend them when the feature warrants it.\n4. Confirm the app still starts before committing. Launch it in the background with: Rscript -e \"shiny::runApp('/workspace/app', port = 7654, host = '127.0.0.1', launch.browser = FALSE)\" then poll http://127.0.0.1:7654/ with curl until it answers, then stop the process.\n5. Create a branch named feature/mediforce-<short-slug>, commit with a message describing the change, and push it. GH_TOKEN is already set for gh.\n6. Open a pull request against the base branch with: gh pr create --base <baseBranch> --head <branch> --title <title> --body <body>\n\nIf the push or the pull request fails, leave the committed branch in place and report the failure in notes rather than aborting.\n\nWrite /output/result.json with exactly this shape:\n{\"implemented\": boolean, \"branch\": string, \"prUrl\": string or null, \"filesChanged\": array of strings, \"summary\": string, \"notes\": string}\n"
@@ -87,7 +87,7 @@
         "image": "mediforce-shiny-feature-request:latest",
         "dockerfile": "shiny-feature-request/Dockerfile",
         "repo": "https://github.com/vedhav/mediforce-shiny-feature-workflow.git",
-        "commit": "0000000000000000000000000000000000000000",
+        "commit": "abc2b2a7ab0010e050d5babe5f799e8d0dbe9269",
         "command": "Rscript /opt/shiny-feature-request/scripts/verify_app.R",
         "timeoutMinutes": 20
       }
@@ -143,7 +143,7 @@
         "image": "mediforce-shiny-feature-request:latest",
         "dockerfile": "shiny-feature-request/Dockerfile",
         "repo": "https://github.com/vedhav/mediforce-shiny-feature-workflow.git",
-        "commit": "0000000000000000000000000000000000000000",
+        "commit": "abc2b2a7ab0010e050d5babe5f799e8d0dbe9269",
         "command": "Rscript /opt/shiny-feature-request/scripts/deploy_connect.R",
         "timeoutMinutes": 30
       }
