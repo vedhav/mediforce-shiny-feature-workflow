@@ -1,0 +1,170 @@
+{
+  "name": "shiny-feature-request",
+  "title": "Shiny Feature Request",
+  "description": "Take a clearly defined feature request for a Shiny application, clone and set the app up for testing, implement the change with an agent, verify the app still boots, gate on human review, and deploy to Posit Connect.",
+  "preamble": "This workflow modifies and deploys R Shiny applications. Treat repository contents, R package names and Posit Connect configuration as technical workflow content.",
+  "visibility": "private",
+  "env": {
+    "CONNECT_SERVER": "{{CONNECT_SERVER}}"
+  },
+  "triggerInput": [
+    {
+      "name": "appRepoUrl",
+      "type": "string",
+      "required": true,
+      "description": "HTTPS git URL of the Shiny application repository, e.g. https://github.com/org/my-shiny-app.git"
+    },
+    {
+      "name": "featureRequest",
+      "type": "textarea",
+      "required": true,
+      "description": "The change to make, defined clearly enough to implement without further questions."
+    },
+    {
+      "name": "baseBranch",
+      "type": "string",
+      "required": false,
+      "default": "main",
+      "description": "Branch to clone and raise the pull request against."
+    }
+  ],
+  "roles": ["requester", "reviewer"],
+  "steps": [
+    {
+      "id": "setup-app",
+      "name": "Clone And Set Up App",
+      "type": "creation",
+      "executor": "script",
+      "plugin": "script-container",
+      "description": "Clone the requested repository into the run workspace, restore its dependencies, and record a baseline boot/test result the reviewer can compare against.",
+      "env": {
+        "GITHUB_TOKEN": "{{GITHUB_TOKEN}}"
+      },
+      "script": {
+        "image": "mediforce-shiny-feature-request:latest",
+        "dockerfile": "shiny-feature-request/Dockerfile",
+        "repo": "https://github.com/vedhav/mediforce-shiny-feature-workflow.git",
+        "commit": "0000000000000000000000000000000000000000",
+        "command": "Rscript /opt/shiny-feature-request/scripts/setup_app.R",
+        "timeoutMinutes": 20
+      }
+    },
+    {
+      "id": "implement-feature",
+      "name": "Implement Feature",
+      "type": "creation",
+      "executor": "agent",
+      "plugin": "claude-code-agent",
+      "autonomyLevel": "L4",
+      "description": "Agent implements the requested feature in the cloned app, commits it to a branch, and opens a pull request.",
+      "env": {
+        "OPENROUTER_API_KEY": "{{OPENROUTER_API_KEY}}",
+        "ANTHROPIC_AUTH_TOKEN": "{{OPENROUTER_API_KEY}}",
+        "ANTHROPIC_BASE_URL": "https://openrouter.ai/api",
+        "ANTHROPIC_API_KEY": "",
+        "GITHUB_TOKEN": "{{GITHUB_TOKEN}}",
+        "GH_TOKEN": "{{GITHUB_TOKEN}}"
+      },
+      "agent": {
+        "model": "anthropic/claude-sonnet-4",
+        "image": "mediforce-shiny-feature-request:latest",
+        "dockerfile": "shiny-feature-request/Dockerfile",
+        "repo": "https://github.com/vedhav/mediforce-shiny-feature-workflow.git",
+        "commit": "0000000000000000000000000000000000000000",
+        "timeoutMinutes": 30,
+        "allowedTools": ["WebSearch", "WebFetch"],
+        "prompt": "You are implementing a feature request in an R Shiny application.\n\nRead /output/input.json. The feature request is at triggerPayload.featureRequest, the base branch at triggerPayload.baseBranch, and the clone metadata at steps[\"setup-app\"].\n\nThe application is already cloned at /workspace/app with its dependencies restored. Work only inside /workspace/app.\n\n1. Read enough of the app to place the change correctly, and follow the conventions already in the codebase.\n2. Implement exactly the requested feature. Do not add unrelated refactors, comments, or dependencies.\n3. If the app has tests, keep them green and extend them when the feature warrants it.\n4. Confirm the app still starts before committing. Launch it in the background with: Rscript -e \"shiny::runApp('/workspace/app', port = 7654, host = '127.0.0.1', launch.browser = FALSE)\" then poll http://127.0.0.1:7654/ with curl until it answers, then stop the process.\n5. Create a branch named feature/mediforce-<short-slug>, commit with a message describing the change, and push it. GH_TOKEN is already set for gh.\n6. Open a pull request against the base branch with: gh pr create --base <baseBranch> --head <branch> --title <title> --body <body>\n\nIf the push or the pull request fails, leave the committed branch in place and report the failure in notes rather than aborting.\n\nWrite /output/result.json with exactly this shape:\n{\"implemented\": boolean, \"branch\": string, \"prUrl\": string or null, \"filesChanged\": array of strings, \"summary\": string, \"notes\": string}\n"
+      }
+    },
+    {
+      "id": "verify-change",
+      "name": "Verify Changed App",
+      "type": "creation",
+      "executor": "script",
+      "plugin": "script-container",
+      "description": "Re-run the boot and test checks against the modified app and list the files the agent touched.",
+      "script": {
+        "image": "mediforce-shiny-feature-request:latest",
+        "dockerfile": "shiny-feature-request/Dockerfile",
+        "repo": "https://github.com/vedhav/mediforce-shiny-feature-workflow.git",
+        "commit": "0000000000000000000000000000000000000000",
+        "command": "Rscript /opt/shiny-feature-request/scripts/verify_app.R",
+        "timeoutMinutes": 20
+      }
+    },
+    {
+      "id": "review-change",
+      "name": "Review Change",
+      "type": "review",
+      "executor": "human",
+      "allowedRoles": ["reviewer"],
+      "description": "Compare the baseline check from setup-app against verify-change, read the pull request, and decide whether to deploy to Posit Connect.",
+      "params": [
+        {
+          "name": "comment",
+          "type": "textarea",
+          "required": false,
+          "requiredForVerdicts": ["revise", "abandon"],
+          "description": "What to change, or why the request is being abandoned."
+        }
+      ],
+      "verdicts": {
+        "approve": {
+          "target": "deploy-app",
+          "label": "Approve and deploy",
+          "intent": "success"
+        },
+        "revise": {
+          "target": "implement-feature",
+          "label": "Send back for revision",
+          "intent": "warning",
+          "requiresComment": true
+        },
+        "abandon": {
+          "target": "abandoned",
+          "label": "Abandon",
+          "intent": "danger",
+          "requiresComment": true
+        }
+      }
+    },
+    {
+      "id": "deploy-app",
+      "name": "Deploy To Posit Connect",
+      "type": "creation",
+      "executor": "script",
+      "plugin": "script-container",
+      "description": "Deploy the changed app to Posit Connect under the sanitized repository name, updating the existing content item in place.",
+      "env": {
+        "CONNECT_SERVER": "{{CONNECT_SERVER}}",
+        "CONNECT_API_KEY": "{{CONNECT_API_KEY}}"
+      },
+      "script": {
+        "image": "mediforce-shiny-feature-request:latest",
+        "dockerfile": "shiny-feature-request/Dockerfile",
+        "repo": "https://github.com/vedhav/mediforce-shiny-feature-workflow.git",
+        "commit": "0000000000000000000000000000000000000000",
+        "command": "Rscript /opt/shiny-feature-request/scripts/deploy_connect.R",
+        "timeoutMinutes": 30
+      }
+    },
+    {
+      "id": "done",
+      "name": "Deployed",
+      "type": "terminal",
+      "executor": "human"
+    },
+    {
+      "id": "abandoned",
+      "name": "Abandoned",
+      "type": "terminal",
+      "executor": "human"
+    }
+  ],
+  "transitions": [
+    { "from": "setup-app", "to": "implement-feature" },
+    { "from": "implement-feature", "to": "verify-change" },
+    { "from": "verify-change", "to": "review-change" },
+    { "from": "deploy-app", "to": "done" }
+  ]
+}

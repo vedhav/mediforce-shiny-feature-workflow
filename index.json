@@ -1,0 +1,10 @@
+{
+  "workflows": [
+    {
+      "name": "shiny-feature-request",
+      "path": "shiny-feature-request/src/shiny-feature-request.wd.json",
+      "description": "Take a feature request for a Shiny application, implement it with an agent, verify the app still boots, gate on human review, and deploy to Posit Connect.",
+      "tags": ["shiny", "posit-connect", "feature-request", "deployment"]
+    }
+  ]
+}
