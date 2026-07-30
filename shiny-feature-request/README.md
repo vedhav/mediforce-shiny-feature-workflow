@@ -27,6 +27,14 @@ review-change      human   review — approve / revise / abandon
 `review-change` has **no outbound transitions** — routing is entirely by verdict
 target, which is what the schema requires of a `type: review` step.
 
+Do not add transitions out of `review-change`. `step-executor.ts` routes a
+review step by `verdicts[v].target` and never consults its transitions, so they
+are dead config — and if a task ever completes without a string verdict,
+execution falls through to transition resolution, every unconditional transition
+matches at once, and the run pauses with `Multiple transitions matched`. A UI
+round-trip added three such transitions between v1 and v3; they were removed
+again in v4.
+
 ## Design notes
 
 - **The workspace is shared.** Every step of a run mounts the same git worktree
@@ -58,7 +66,7 @@ target, which is what the schema requires of a `type: review` step.
 
 | Name | Secret | Scope | Used by | Meaning | How to set | Example |
 |------|--------|-------|---------|---------|------------|---------|
-| `GITHUB_TOKEN` | yes | workflow | `setup-app`, `implement-feature` | Clones private app repos and opens the pull request. Absent → unauthenticated clone and no PR (the branch is still committed locally). Also exported as `GH_TOKEN` for the `gh` CLI. | Workflow secrets panel | `ghp_…` |
+| `GITHUB_TOKEN` | yes | workflow | **all four** script/agent steps | Two distinct jobs. (1) `repoAuth` on every step's container config — the image builder authenticates its clone of *this* package repo, and in practice the build fails without it even though the repo is public. This is why the token must be in the `env` of all four steps, not just the two that use it directly. (2) In `setup-app` / `implement-feature` it also clones the target app repo and opens the pull request (exported as `GH_TOKEN` for `gh`). Absent → image build fails. | Workflow secrets panel | `ghp_…` |
 | `CONNECT_SERVER` | no | workflow or namespace | `deploy-app` | Posit Connect base URL. `/__api__` is appended by the script. | Workflow env or namespace env | `https://connect.appsilon.com` |
 | `CONNECT_API_KEY` | yes | workflow | `deploy-app` | Posit Connect API key used by `rsconnect::connectApiUser()`. | Workflow secrets panel | 32-char key |
 | `OPENROUTER_API_KEY` | yes | workflow or namespace | `implement-feature` | LLM key; also mapped to `ANTHROPIC_AUTH_TOKEN` against the OpenRouter base URL. | Workflow secrets panel | `sk-or-v1-…` |
