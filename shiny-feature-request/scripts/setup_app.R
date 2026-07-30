@@ -13,12 +13,16 @@ source(file.path(
 ))
 
 input <- read_step_input()
-payload <- input$triggerPayload
+
+# The manual-start form values reach this container via the capture-request
+# reshape step, not directly: /output/input.json carries only `steps`, and the
+# run's triggerPayload is a separate field that never appears there.
+payload <- input$steps[["capture-request"]]
 if (is.null(payload)) payload <- list()
 
 repo_url <- payload$appRepoUrl
 if (is.null(repo_url) || !nzchar(repo_url)) {
-  stop("appRepoUrl is required on the trigger payload")
+  stop("appRepoUrl is empty — check the capture-request step output and the start form")
 }
 base_branch <- if (!is.null(payload$baseBranch) && nzchar(payload$baseBranch)) {
   payload$baseBranch

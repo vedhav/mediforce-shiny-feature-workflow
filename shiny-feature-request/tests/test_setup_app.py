@@ -30,7 +30,7 @@ def run():
         app_repo = harness.make_app_repo(scratch / "source" / "my-shiny-app")
 
         payload = json.loads(FIXTURE.read_text())
-        payload["triggerPayload"]["appRepoUrl"] = f"file://{app_repo}"
+        payload["steps"]["capture-request"]["appRepoUrl"] = f"file://{app_repo}"
         harness.write_input(scratch, payload)
 
         completed = harness.run_script(scratch, "setup_app.R")

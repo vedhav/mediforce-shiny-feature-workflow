@@ -12,6 +12,8 @@ start form, so one registered workflow serves any Shiny app.
 ```
 (manual start form: appRepoUrl, featureRequest, baseBranch)
         │
+capture-request    action  reshape — lifts the form values into step output
+        │
 setup-app          script  clone → renv::restore() → baseline boot/test check
         │
 implement-feature  agent   L4 — implement, commit, push branch, open PR
@@ -37,6 +39,18 @@ again in v4.
 
 ## Design notes
 
+- **`capture-request` exists because containers cannot see the trigger payload.**
+  A run stores `triggerPayload` as a field on the instance and starts with
+  `variables: {}` (`workflow-engine.ts:102-104`); the input a container receives
+  is `{ ...previousStepOutput, steps: instance.variables }`
+  (`route.ts:588`). So `/output/input.json` has **no `triggerPayload` key**, and
+  step `env` is no help either — it resolves `{{SECRET}}` templates only, not
+  `${...}` interpolation (`resolve-env.ts`). Action steps *do* get a
+  `triggerPayload` interpolation root (`route.ts:641-646`), and `reshape` returns
+  its interpolated values as step output, so one cheap action step lifts the form
+  values into `steps` where every later step can read them. This is the same
+  problem the golden-standard package solves by duplicating its `triggerInput`
+  fields as a human step's `params`; `reshape` does it without a human.
 - **The workspace is shared.** Every step of a run mounts the same git worktree
   at `/workspace`, so `setup-app` clones once into `/workspace/app` and the
   implement, verify, and deploy steps all reuse it. No re-clone, no re-restore.
@@ -105,6 +119,13 @@ source**. The image build is correspondingly slow the first time. Adding
 the image to one base distribution.
 
 ## Output contracts
+
+`capture-request`
+```json
+{ "appRepoUrl": "string", "featureRequest": "string", "baseBranch": "string" }
+```
+`baseBranch` is `""` when the optional form field was left blank — an unresolved
+`${...}` path interpolates to empty, and `setup_app.R` treats empty as `main`.
 
 `setup-app`
 ```json

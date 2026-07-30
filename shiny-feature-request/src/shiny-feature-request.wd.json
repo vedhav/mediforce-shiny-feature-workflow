@@ -31,6 +31,23 @@
   "roles": ["requester", "reviewer"],
   "steps": [
     {
+      "id": "capture-request",
+      "name": "Capture Request",
+      "type": "creation",
+      "executor": "action",
+      "description": "Copy the manual-start form values into step output. A script or agent step receives only `steps` in /output/input.json — the trigger payload is a separate field on the run and never reaches the container — so an action step, which does get a triggerPayload interpolation root, is what brings the form values into reach.",
+      "action": {
+        "kind": "reshape",
+        "config": {
+          "values": {
+            "appRepoUrl": "${triggerPayload.appRepoUrl}",
+            "featureRequest": "${triggerPayload.featureRequest}",
+            "baseBranch": "${triggerPayload.baseBranch}"
+          }
+        }
+      }
+    },
+    {
       "id": "setup-app",
       "name": "Clone And Set Up App",
       "type": "creation",
@@ -75,7 +92,7 @@
         "repoAuth": "GITHUB_TOKEN",
         "timeoutMinutes": 30,
         "allowedTools": ["WebSearch", "WebFetch"],
-        "prompt": "You are implementing a feature request in an R Shiny application.\n\nRead /output/input.json. The feature request is at triggerPayload.featureRequest, the base branch at triggerPayload.baseBranch, and the clone metadata at steps[\"setup-app\"].\n\nThe application is already cloned at /workspace/app with its dependencies restored. Work only inside /workspace/app.\n\n1. Read enough of the app to place the change correctly, and follow the conventions already in the codebase.\n2. Implement exactly the requested feature. Do not add unrelated refactors, comments, or dependencies.\n3. If the app has tests, keep them green and extend them when the feature warrants it.\n4. Confirm the app still starts before committing. Launch it in the background with: Rscript -e \"shiny::runApp('/workspace/app', port = 7654, host = '127.0.0.1', launch.browser = FALSE)\" then poll http://127.0.0.1:7654/ with curl until it answers, then stop the process.\n5. Create a branch named feature/mediforce-<short-slug>, commit with a message describing the change, and push it. GH_TOKEN is already set for gh.\n6. Open a pull request against the base branch with: gh pr create --base <baseBranch> --head <branch> --title <title> --body <body>\n\nIf the push or the pull request fails, leave the committed branch in place and report the failure in notes rather than aborting.\n\nWrite /output/result.json with exactly this shape:\n{\"implemented\": boolean, \"branch\": string, \"prUrl\": string or null, \"filesChanged\": array of strings, \"summary\": string, \"notes\": string}\n"
+        "prompt": "You are implementing a feature request in an R Shiny application.\n\nRead /output/input.json. The feature request is at steps[\"capture-request\"].featureRequest, the base branch at steps[\"capture-request\"].baseBranch (treat an empty value as \"main\"), and the clone metadata at steps[\"setup-app\"].\n\nThe application is already cloned at /workspace/app with its dependencies restored. Work only inside /workspace/app.\n\n1. Read enough of the app to place the change correctly, and follow the conventions already in the codebase.\n2. Implement exactly the requested feature. Do not add unrelated refactors, comments, or dependencies.\n3. If the app has tests, keep them green and extend them when the feature warrants it.\n4. Confirm the app still starts before committing. Launch it in the background with: Rscript -e \"shiny::runApp('/workspace/app', port = 7654, host = '127.0.0.1', launch.browser = FALSE)\" then poll http://127.0.0.1:7654/ with curl until it answers, then stop the process.\n5. Create a branch named feature/mediforce-<short-slug>, commit with a message describing the change, and push it. GH_TOKEN is already set for gh.\n6. Open a pull request against the base branch with: gh pr create --base <baseBranch> --head <branch> --title <title> --body <body>\n\nIf the push or the pull request fails, leave the committed branch in place and report the failure in notes rather than aborting.\n\nWrite /output/result.json with exactly this shape:\n{\"implemented\": boolean, \"branch\": string, \"prUrl\": string or null, \"filesChanged\": array of strings, \"summary\": string, \"notes\": string}\n"
       }
     },
     {
@@ -170,6 +187,7 @@
     }
   ],
   "transitions": [
+    { "from": "capture-request", "to": "setup-app" },
     { "from": "setup-app", "to": "implement-feature" },
     { "from": "implement-feature", "to": "verify-change" },
     { "from": "verify-change", "to": "review-change" },

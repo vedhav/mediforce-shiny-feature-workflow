@@ -1,10 +1,10 @@
 {
-  "triggerPayload": {
-    "appRepoUrl": "file:///replaced-by-the-test-with-a-local-fixture-repo",
-    "featureRequest": "Add a reset button that clears the greeting text.",
-    "baseBranch": "main"
-  },
   "steps": {
+    "capture-request": {
+      "appRepoUrl": "file:///replaced-by-the-test-with-a-local-fixture-repo",
+      "featureRequest": "Add a reset button that clears the greeting text.",
+      "baseBranch": "main"
+    },
     "setup-app": {
       "appName": "my-shiny-app",
       "baseBranch": "main",
