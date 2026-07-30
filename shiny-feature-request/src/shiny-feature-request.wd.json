@@ -61,7 +61,7 @@
         "image": "mediforce-shiny-feature-request:latest",
         "dockerfile": "shiny-feature-request/Dockerfile",
         "repo": "https://github.com/vedhav/mediforce-shiny-feature-workflow.git",
-        "commit": "abc2b2a7ab0010e050d5babe5f799e8d0dbe9269",
+        "commit": "458b19d1be8b06ea233189be9ae723fbf70b3f16",
         "repoAuth": "GITHUB_TOKEN",
         "command": "Rscript /opt/shiny-feature-request/scripts/setup_app.R",
         "timeoutMinutes": 20
@@ -88,7 +88,7 @@
         "image": "mediforce-shiny-feature-request:latest",
         "dockerfile": "shiny-feature-request/Dockerfile",
         "repo": "https://github.com/vedhav/mediforce-shiny-feature-workflow.git",
-        "commit": "abc2b2a7ab0010e050d5babe5f799e8d0dbe9269",
+        "commit": "458b19d1be8b06ea233189be9ae723fbf70b3f16",
         "repoAuth": "GITHUB_TOKEN",
         "timeoutMinutes": 30,
         "allowedTools": ["WebSearch", "WebFetch"],
@@ -109,7 +109,7 @@
         "image": "mediforce-shiny-feature-request:latest",
         "dockerfile": "shiny-feature-request/Dockerfile",
         "repo": "https://github.com/vedhav/mediforce-shiny-feature-workflow.git",
-        "commit": "abc2b2a7ab0010e050d5babe5f799e8d0dbe9269",
+        "commit": "458b19d1be8b06ea233189be9ae723fbf70b3f16",
         "repoAuth": "GITHUB_TOKEN",
         "command": "Rscript /opt/shiny-feature-request/scripts/verify_app.R",
         "timeoutMinutes": 20
@@ -167,7 +167,7 @@
         "image": "mediforce-shiny-feature-request:latest",
         "dockerfile": "shiny-feature-request/Dockerfile",
         "repo": "https://github.com/vedhav/mediforce-shiny-feature-workflow.git",
-        "commit": "abc2b2a7ab0010e050d5babe5f799e8d0dbe9269",
+        "commit": "458b19d1be8b06ea233189be9ae723fbf70b3f16",
         "repoAuth": "GITHUB_TOKEN",
         "command": "Rscript /opt/shiny-feature-request/scripts/deploy_connect.R",
         "timeoutMinutes": 30
