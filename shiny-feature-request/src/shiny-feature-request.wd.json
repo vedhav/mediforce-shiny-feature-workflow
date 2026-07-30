@@ -64,7 +64,7 @@
         "commit": "458b19d1be8b06ea233189be9ae723fbf70b3f16",
         "repoAuth": "GITHUB_TOKEN",
         "command": "Rscript /opt/shiny-feature-request/scripts/setup_app.R",
-        "timeoutMinutes": 20
+        "timeoutMinutes": 45
       }
     },
     {

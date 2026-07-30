@@ -104,6 +104,34 @@ setup** for this package. Only the four environment values above.
   reproducible. `install.packages` only warns on failure, so the build asserts
   the packages are present afterwards and fails loudly if not.
 
+### Why the image does not pre-install the app's packages
+
+The target app is chosen per request, so its `renv.lock` is unknown when the
+image is built — baking one app's dependencies in would fix that app only. What
+the image does instead is make `renv::restore()` work for an arbitrary lock:
+
+- **A binary package repository.** `Rprofile.site` and `Renviron.site` are
+  written at build time to point at
+  `packagemanager.posit.co/cran/__linux__/<codename>/2026-07-01`, with the
+  codename resolved from `/etc/os-release`. Two things were wrong before: the
+  URL had no `__linux__/<codename>/` segment, so PPM served source tarballs; and
+  `renv` defaults to the repositories recorded *inside the target app's
+  renv.lock*, which is usually plain CRAN — also source-only on Linux.
+  `RENV_CONFIG_REPOS_OVERRIDE` makes renv ignore the lock's repos and use the
+  binary one. `HTTPUserAgent` is also required: PPM sniffs the R user agent to
+  decide whether to serve a binary, and silently falls back to source when it
+  does not match.
+- **System headers anyway**, as a fallback for packages PPM has no binary for —
+  `libnode-dev` (V8), GDAL/PROJ/GEOS (sf, raster, terra), unixODBC, libpq,
+  ICU, harfbuzz/fribidi/freetype, and the image libraries.
+- **Chromium**, for apps whose tests use shinytest2/chromote.
+- **A shared renv cache** at `/opt/renv-cache`, so repeat runs against the same
+  app skip re-downloading.
+
+This costs image size — the `-dev` packages and Chromium are not small. The
+trade is deliberate: without them, an app whose lock contains one binary-less
+compiled package fails the whole restore.
+
 The `:latest` tag is safe here because the image is in **build mode**: the
 builder labels the image with the `commit` SHA and rebuilds whenever that label
 goes stale, so the `commit` field is the real pin, not the tag.

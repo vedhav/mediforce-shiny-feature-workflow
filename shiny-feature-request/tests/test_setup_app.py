@@ -15,7 +15,7 @@ FIXTURE = Path(__file__).resolve().parent / "fixtures" / "setup-app.input.json"
 
 DOCUMENTED_KEYS = {
     "appRepoUrl", "appName", "baseBranch", "baseCommit", "appDir",
-    "renvRestored", "renvDetail", "boots", "bootDetail", "bootLog",
+    "renvRestored", "renvDetail", "renvLog", "boots", "bootDetail", "bootLog",
     "testsRun", "testsPassed", "testDetail", "baselinePassed",
 }
 

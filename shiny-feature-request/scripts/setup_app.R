@@ -74,6 +74,7 @@ write_step_result(list(
   appDir = baseline$appDir,
   renvRestored = restored$renvRestored,
   renvDetail = restored$renvDetail,
+  renvLog = restored$renvLog,
   boots = baseline$boots,
   bootDetail = baseline$bootDetail,
   bootLog = baseline$bootLog,

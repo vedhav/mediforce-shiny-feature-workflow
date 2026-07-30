@@ -45,13 +45,56 @@ detect_app_dir <- function(root) {
   NULL
 }
 
+# Restore the target app's dependencies. Runs renv in a subprocess so the whole
+# transcript can be captured — a bare renv::restore() failure surfaces only its
+# final line, which for a 100-package lock is an unreadable list of every
+# package and says nothing about why.
 restore_deps <- function(app_root) {
   lockfile <- file.path(app_root, "renv.lock")
   if (!file.exists(lockfile)) {
-    return(list(renvRestored = FALSE, renvDetail = "no renv.lock — skipped"))
+    return(list(renvRestored = FALSE, renvDetail = "no renv.lock — skipped", renvLog = ""))
   }
-  renv::restore(project = app_root, prompt = FALSE)
-  list(renvRestored = TRUE, renvDetail = "renv.lock restored")
+
+  locked <- tryCatch(
+    length(fromJSON(lockfile, simplifyVector = FALSE)$Packages),
+    error = function(err) NA_integer_
+  )
+
+  log_path <- tempfile(fileext = ".log")
+  status <- system2(
+    "Rscript",
+    c("-e", shQuote(sprintf("renv::restore(project = '%s', prompt = FALSE)", app_root))),
+    stdout = log_path, stderr = log_path
+  )
+  restore_log <- if (file.exists(log_path)) {
+    paste(readLines(log_path, warn = FALSE), collapse = "\n")
+  } else {
+    ""
+  }
+
+  if (status != 0) {
+    lines <- strsplit(restore_log, "\n")[[1]]
+    stop(sprintf(
+      paste0(
+        "renv::restore() failed for %s (%s packages in renv.lock).\n",
+        "Repos R resolved to: %s\n",
+        "RENV_CONFIG_REPOS_OVERRIDE=%s\n",
+        "If these are not __linux__/<codename>/ URLs, packages are being built ",
+        "from source and a missing system header is the likely cause.\n",
+        "Last 60 lines of the renv transcript:\n%s"
+      ),
+      app_root, locked,
+      paste(getOption("repos"), collapse = ", "),
+      Sys.getenv("RENV_CONFIG_REPOS_OVERRIDE", "<unset>"),
+      paste(utils::tail(lines, 60), collapse = "\n")
+    ))
+  }
+
+  list(
+    renvRestored = TRUE,
+    renvDetail = sprintf("restored %s packages from renv.lock", locked),
+    renvLog = substr(restore_log, 1, 4000)
+  )
 }
 
 # Start the app in a subprocess and poll until it answers HTTP 200 or dies.
